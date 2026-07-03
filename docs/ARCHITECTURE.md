@@ -62,7 +62,13 @@ The PotholeDetectionService identifies bumps/potholes using threshold-based dete
 - **Speed Validation**: Rejects detections below a minimum speed (5 km/h) to filter out stationary shaking (e.g. entering the vehicle).
 - **GPS Validation**: Rejects detections with poor GPS accuracy (> 25m).
 - **Cooldown Logic**: A 3-second cooldown is enforced between recorded events to prevent duplicate event spamming over a single long anomaly.
-- **Lifecycle**: Detected events are saved as `RoadEvent` to the in-memory buffer and flushed to Supabase dynamically. Map visualization will consume this cloud data.
+- **Lifecycle**: Detected events are saved as `RoadEvent` to the in-memory buffer and flushed to Supabase dynamically.
+
+## Supabase Map Visualization
+- **Data Flow**: The Map Visualization strictly consumes cloud data from Supabase. It uses `road_readings` to draw the trip route polyline and `road_events` to plot detected anomalies.
+- **RLS Protection**: Because it relies on `RoadSessionApi`, `RoadReadingApi`, and `RoadEventApi`, map data is protected by Row Level Security (RLS) ensuring users can only fetch and view their own trips.
+- **Map Display**: Uses `flutter_map` with OpenStreetMap tiles. Missing or invalid coordinates are safely filtered out using pure functions in `map_utils.dart`.
+- **Requirements**: Plotting a route requires a minimum of 2 valid GPS readings. Recording longer trips on a real Android device naturally produces better map visualizations, whereas simulator testing or brief 5-second recordings will yield only a few points.
 
 ## Privacy and Permission Boundary
 The app strictly respects privacy by requesting permissions only when necessary:

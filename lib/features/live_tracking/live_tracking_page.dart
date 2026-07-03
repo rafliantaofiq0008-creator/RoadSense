@@ -375,8 +375,10 @@ class _LiveTrackingPageState extends State<LiveTrackingPage> {
             const SizedBox(height: 16),
 
             // Controls
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8.0,
+              runSpacing: 8.0,
               children: [
                 if (!_tripRecorderService.isRecording)
                   ElevatedButton.icon(

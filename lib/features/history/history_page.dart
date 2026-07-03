@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../data/remote/road_session_api.dart';
 import '../../data/models/road_session.dart';
 import '../trip_detail/trip_detail_page.dart';
+import '../map/map_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -114,14 +115,31 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                 ],
               ),
-              trailing: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.cloud_done, color: Colors.green),
-                  SizedBox(height: 4),
-                  Text(
-                    'Synced',
-                    style: TextStyle(fontSize: 10, color: Colors.green),
+                  IconButton(
+                    icon: const Icon(Icons.map, color: Colors.blue),
+                    tooltip: 'View on Map',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MapPage(initialSessionId: session.id),
+                        ),
+                      );
+                    },
+                  ),
+                  const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.cloud_done, color: Colors.green),
+                      SizedBox(height: 4),
+                      Text(
+                        'Synced',
+                        style: TextStyle(fontSize: 10, color: Colors.green),
+                      ),
+                    ],
                   ),
                 ],
               ),

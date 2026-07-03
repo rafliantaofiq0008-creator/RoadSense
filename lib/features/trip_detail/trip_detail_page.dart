@@ -8,6 +8,8 @@ import '../../data/models/road_event.dart';
 import '../../data/remote/road_event_api.dart';
 import '../../data/models/vibration_sample.dart';
 import '../../shared/charts/vibration_chart.dart';
+import '../../core/utils/map_utils.dart';
+import '../map/map_page.dart';
 
 class TripDetailPage extends StatefulWidget {
   final String sessionId;
@@ -118,6 +120,28 @@ class _TripDetailPageState extends State<TripDetailPage> {
                     Text('Total Readings: ${_readings.length}'),
                     Text('Total Events: ${_events.length}'),
                     const Text('Status: Saved to Cloud', style: TextStyle(color: Colors.green)),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final validPoints = MapUtils.filterValidRoutePoints(_readings);
+                          if (validPoints.length < 2) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Warning: Not enough GPS points to draw a route for this trip.')),
+                            );
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MapPage(initialSessionId: s.id),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.map),
+                        label: const Text('View on Map'),
+                      ),
+                    ),
                   ],
                 ),
               ),

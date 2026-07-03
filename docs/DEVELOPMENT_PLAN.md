@@ -37,5 +37,8 @@
 - [x] Remove SQLite.
 - [x] Upload batched readings and events directly.
 
-## Phase 9: History and map visualization
-- Use `flutter_map` and `fl_chart` to render trip analytics.
+## Phase 9: Supabase Map Visualization (Completed)
+- [x] Integrate `flutter_map` with OpenStreetMap.
+- [x] Visualize trip routes using `road_readings`.
+- [x] Display road anomalies as markers using `road_events`.
+- [x] Build map navigation from Dashboard, History, and Trip Details.

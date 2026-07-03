@@ -12,6 +12,11 @@ RoadSense uses a Supabase-only architecture. All sensor data is buffered in memo
 ### Batching & Interval Sampling
 Raw readings (accelerometer, GPS) are generated at high frequencies in the UI. For trip recording, they are sampled at a dedicated 1-second interval before being saved as a combined `RoadReading` to an in-memory buffer. These buffered readings and events are then batched and uploaded to Supabase every 5 seconds. This drastically minimizes network overhead and API calls.
 
+### Map Coordinate Derivation
+The Map Visualization exclusively queries `road_readings` and `road_events` from Supabase:
+- **Route Polyline**: Drawn using the sequenced `latitude` and `longitude` fields from `road_readings`.
+- **Event Markers**: Plotted using the `latitude` and `longitude` fields from `road_events`. Missing or invalid coordinates (`null`, out-of-bounds) are safely discarded during rendering.
+
 ## Row Level Security (RLS) Policies
 - Enabled on `profiles`, `road_sessions`, `road_readings`, and `road_events`.
 - Enforces strict isolation: `auth.uid() = user_id`.

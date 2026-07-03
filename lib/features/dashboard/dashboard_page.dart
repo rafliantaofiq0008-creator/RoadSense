@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../live_tracking/live_tracking_page.dart';
 import '../history/history_page.dart';
+import '../map/map_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -153,6 +154,41 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(height: 8),
                         const Text(
                           'View your previously recorded trips fetched from Supabase.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Map Visualization Card
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MapPage()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      children: [
+                        Icon(Icons.map, size: 48, color: Colors.purple[600]),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Map Visualization',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'View recorded trip routes and detected road events on a map.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey),
                         ),
