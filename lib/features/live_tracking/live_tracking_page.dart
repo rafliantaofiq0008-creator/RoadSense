@@ -10,7 +10,10 @@ import '../../services/location_service.dart';
 import '../../services/trip_recorder_service.dart';
 
 import '../../shared/charts/vibration_chart.dart';
-
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
+import '../../data/remote/road_photo_api.dart';
 class LiveTrackingPage extends StatefulWidget {
   const LiveTrackingPage({super.key});
 
@@ -31,6 +34,59 @@ class _LiveTrackingPageState extends State<LiveTrackingPage> {
   
   bool _isRunning = false;
   bool _isLoading = false;
+
+  final RoadPhotoApi _photoApi = RoadPhotoApi();
+  final ImagePicker _picker = ImagePicker();
+  int _sessionPhotoCount = 0;
+  bool _isUploadingPhoto = false;
+
+  Future<void> _takePhoto() async {
+    final sessionId = _tripRecorderService.activeSessionId;
+    if (sessionId == null || !_tripRecorderService.isRecording) return;
+
+    try {
+      final XFile? xfile = await _picker.pickImage(source: ImageSource.camera);
+      if (xfile == null) return;
+
+      setState(() => _isUploadingPhoto = true);
+
+      // Simple compression
+      final File file = File(xfile.path);
+      final bytes = await file.readAsBytes();
+      final decodedImage = img.decodeImage(bytes);
+      if (decodedImage != null) {
+        final resizedImage = img.copyResize(decodedImage, width: 800);
+        await file.writeAsBytes(img.encodeJpg(resizedImage, quality: 70));
+      }
+
+      final locSample = _locationService.currentSample;
+      final vibSample = _accelerometerService.currentSample;
+
+      await _photoApi.uploadPhotoForSession(
+        sessionId: sessionId,
+        imageFile: file,
+        caption: 'Manual road condition photo',
+        latitude: locSample?.latitude,
+        longitude: locSample?.longitude,
+        gpsAccuracy: locSample?.accuracy,
+        speed: locSample?.speedKmh,
+        vibration: vibSample?.vibration,
+      );
+
+      if (mounted) {
+        setState(() => _sessionPhotoCount++);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo uploaded successfully!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload photo: $e'), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -246,7 +302,7 @@ class _LiveTrackingPageState extends State<LiveTrackingPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildValueCard('Speed (km/h)', locSample?.speedKmh),
+                                _buildValueCard('Speed (km/h)', _tripRecorderService.currentSpeedKmh),
                                 _buildTextCard('Movement', isMoving ? 'Moving' : 'Stopped', isMoving ? Colors.green : Colors.grey),
                                 _buildTextCard('Quality', gpsQuality, gpsColor),
                               ],
@@ -256,6 +312,57 @@ class _LiveTrackingPageState extends State<LiveTrackingPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // Road Segment Status Section
+                    if (_tripRecorderService.isRecording) ...[
+                      Builder(
+                        builder: (context) {
+                          final candidate = _tripRecorderService.segmentAnalyzer.getLiveCandidate(_tripRecorderService.totalDistanceKm * 1000.0);
+                          final startStr = candidate.distanceStartM.toStringAsFixed(0);
+                          final endStr = candidate.distanceEndM.toStringAsFixed(0);
+                          final cond = candidate.roadCondition;
+                          
+                          Color condColor = Colors.grey;
+                          if (cond == 'good') condColor = Colors.green;
+                          if (cond == 'uneven_road' || cond == 'slightly_uneven') condColor = Colors.orange;
+                          if (cond == 'pothole_indication') condColor = Colors.deepOrange;
+                          if (cond == 'severe_damage') condColor = Colors.red;
+
+                          return Card(
+                            elevation: 2,
+                            color: condColor.withValues(alpha: 0.1),
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide(color: condColor.withValues(alpha: 0.5), width: 1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Active Segment ($startStr - $endStr m)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                      Text(cond.toUpperCase().replaceAll('_', ' '), style: TextStyle(color: condColor, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  const Divider(),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      _buildValueCard('Avg Spd', candidate.avgSpeedKmh),
+                                      _buildValueCard('Max Vib', candidate.maxVibration),
+                                      _buildValueCard('Events', candidate.eventCount.toDouble()),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     // Detection Status Section
                     Card(
                       elevation: 2,
@@ -410,6 +517,18 @@ class _LiveTrackingPageState extends State<LiveTrackingPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade900,
                       foregroundColor: Colors.white,
+                    ),
+                  ),
+                if (_tripRecorderService.isRecording)
+                  ElevatedButton.icon(
+                    onPressed: _isUploadingPhoto ? null : _takePhoto,
+                    icon: _isUploadingPhoto
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.camera_alt),
+                    label: Text(_isUploadingPhoto ? 'Uploading...' : 'Take Photo ($_sessionPhotoCount)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade100,
+                      foregroundColor: Colors.blue.shade900,
                     ),
                   ),
                 OutlinedButton.icon(

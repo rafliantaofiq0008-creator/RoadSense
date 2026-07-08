@@ -23,8 +23,10 @@ Pemantauan kondisi jalan seringkali membutuhkan peralatan khusus yang mahal dan 
 - **Pothole Detection Engine**: Mesin deteksi lubang otomatis yang berjalan dengan evaluasi *threshold* dari raw sensor.
 - **Cloud Trip History**: Menampilkan riwayat perjalanan pengguna dari cloud.
 - **Cloud Trip Detail**: Melihat detail spesifik dari sebuah sesi perjalanan (statistik, jumlah getaran, dll).
-- **Planned Map Visualization**: Visualisasi data anomali di atas peta interaktif (dalam tahap pengembangan).
-
+- **Map Visualization**: Visualisasi data anomali di atas peta interaktif menggunakan flutter_map.
+- **AI Scientific Report**: Generator laporan kondisi jalan otomatis berbasis AI (Google Gemini) yang ditujukan untuk Diskominfo atau Dinas PUPR.
+- **Road Photo Evidence**: Pengambilan dan lampiran bukti foto dokumentasi jalan yang terintegrasi dengan laporan.
+- **PDF Report Export**: Pembuatan laporan AI (termasuk galeri foto) dalam format dokumen PDF profesional secara lokal.
 ## Sensor yang Digunakan
 - **User Accelerometer / Accelerometer**: Mendeteksi gaya percepatan pada perangkat tanpa memperhitungkan gravitasi bumi (mendeteksi guncangan suspensi mobil).
 - **GPS**: Menentukan koordinat lokasi kejadian anomali jalan.
@@ -56,6 +58,7 @@ Aplikasi ini menggunakan database PostgreSQL pada Supabase dengan tabel utama se
 - **`road_sessions`**: Menyimpan data sesi perjalanan (waktu mulai, waktu selesai, ringkasan jarak/kecepatan).
 - **`road_readings`**: Menyimpan sampel pembacaan kombinasi getaran dan kecepatan per detik selama perjalanan.
 - **`road_events`**: Menyimpan deteksi anomali/lubang saat batas threshold getaran terlampaui.
+- **`road_photos`**: Menyimpan metadata foto dokumentasi (disertai koordinat GPS dan data sensor) yang merujuk ke file gambar pada Supabase Storage (`road-photos` bucket).
 
 ## Row Level Security (RLS)
 Supabase di RoadSense diamankan dengan aturan **Row Level Security**:
@@ -91,6 +94,8 @@ Sistem akan memblokir fitur mulai perekaman apabila kriteria berikut belum terpe
 - `flutter_map` (Direncanakan untuk peta interaktif)
 - `uuid` (Generasi ID unik)
 - `intl` (Formatting tanggal dan angka)
+- `image_picker`, `image` (Akses kamera dan kompresi foto)
+- `pdf`, `printing`, `path_provider`, `share_plus` (Ekspor dokumen PDF dan layanan share)
 
 ## Struktur Folder
 ```text
@@ -165,10 +170,12 @@ flutter test
 
 ## Roadmap
 - [ ] Peningkatan stabilitas sampling background.
-- [ ] Implementasi Map Visualization (`flutter_map`).
+- [x] Implementasi Map Visualization (`flutter_map`).
 - [ ] Marker clustering untuk lubang jalan.
+- [x] AI Road Damage Scientific Report (Diskominfo).
+- [x] Ekspor data Laporan ke PDF (disertai lampiran foto).
 - [ ] Halaman Admin / Dashboard Pelaporan berbasis Web.
-- [ ] Ekspor data ke CSV.
+- [ ] Ekspor data raw ke CSV.
 - [ ] Mode Kalibrasi (Kalibrasi berat dan posisi HP otomatis).
 - [ ] Simulation Mode untuk developer tanpa fisik device.
 - [ ] Opsi Offline Sync di masa mendatang jika skala data membesar.
@@ -187,7 +194,9 @@ flutter test
 - Android sensor validation: ✅ Completed
 - Cloud readings batch upload: ✅ Completed
 - Pothole detection engine: ✅ Completed
-- Map visualization: 🚧 Planned
+- Map visualization: ✅ Completed
+- AI Scientific Report: ✅ Completed
+- Road Photo Evidence & PDF Export: ✅ Completed
 
 ## Author
 **Raflian Taofiq Z.M**  

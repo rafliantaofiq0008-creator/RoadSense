@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../core/utils/map_utils.dart';
 import '../../data/models/road_session.dart';
-import '../../data/models/road_reading.dart';
 import '../../data/models/road_event.dart';
 import '../../data/remote/road_session_api.dart';
 import '../../data/remote/road_reading_api.dart';
@@ -113,7 +112,7 @@ class _MapPageState extends State<MapPage> {
               Text('Vibration: ${event.vibration.toStringAsFixed(2)}'),
               Text('Speed: ${event.speed.toStringAsFixed(1)} km/h'),
               Text('GPS Accuracy: ${event.gpsAccuracy.toStringAsFixed(1)} m'),
-              Text('Coordinates: ${event.latitude?.toStringAsFixed(5)}, ${event.longitude?.toStringAsFixed(5)}'),
+              Text('Coordinates: ${event.latitude.toStringAsFixed(5)}, ${event.longitude.toStringAsFixed(5)}'),
               Text('Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(event.recordedAt.toLocal())}'),
               const SizedBox(height: 16),
             ],
@@ -140,7 +139,7 @@ class _MapPageState extends State<MapPage> {
                   labelText: 'Select Trip Session',
                   border: OutlineInputBorder(),
                 ),
-                value: _selectedSession,
+                initialValue: _selectedSession,
                 isExpanded: true,
                 items: _sessions.map((session) {
                   final start = DateFormat('yyyy-MM-dd HH:mm').format(session.startTime.toLocal());
@@ -184,7 +183,7 @@ class _MapPageState extends State<MapPage> {
       );
     }
 
-    final eventPoints = _events.map((e) => LatLng(e.latitude!, e.longitude!)).toList();
+    final eventPoints = _events.map((e) => LatLng(e.latitude, e.longitude)).toList();
     final initialCenter = MapUtils.calculateMapCenter(
       routePoints: _routePoints, 
       eventPoints: eventPoints
@@ -217,7 +216,7 @@ class _MapPageState extends State<MapPage> {
             if (event.severity == 'high') markerColor = Colors.red;
 
             return Marker(
-              point: LatLng(event.latitude!, event.longitude!),
+              point: LatLng(event.latitude, event.longitude),
               width: 40,
               height: 40,
               child: GestureDetector(

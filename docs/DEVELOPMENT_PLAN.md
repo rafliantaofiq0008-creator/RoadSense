@@ -33,6 +33,14 @@
 - [x] Record detected anomalies to cloud buffers.
 - [x] Update UI with Detection Status.
 
+### Phase 11: Road Photo Evidence & PDF Report Export (Completed)
+- **Goal**: Enable photo evidence capture and generate exportable PDF reports.
+- **Tasks**:
+  - [x] Implement `road_photos` Supabase table and Storage Bucket policies.
+  - [x] Add 'Take Photo' capture to Live Tracking and Trip Detail retroactively.
+  - [x] Update Edge Function AI prompt to include photo metadata evidence.
+  - [x] Implement local Flutter PDF generation combining Markdown and Photo assets.
+
 ## Phase 8: Cloud Native Migration (Completed)
 - [x] Remove SQLite.
 - [x] Upload batched readings and events directly.
@@ -42,3 +50,9 @@
 - [x] Visualize trip routes using `road_readings`.
 - [x] Display road anomalies as markers using `road_events`.
 - [x] Build map navigation from Dashboard, History, and Trip Details.
+
+## Phase 10: AI Road Damage Scientific Report (Completed)
+- [x] Create `ai_reports` table with RLS.
+- [x] Implement Edge Function to call Gemini 2.5 Flash for report generation.
+- [x] Integrate UI to generate, view, and copy scientific reports.
+- [x] Use deterministic data analytics for AI prompting.

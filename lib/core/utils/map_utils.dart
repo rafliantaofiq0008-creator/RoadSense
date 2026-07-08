@@ -12,7 +12,7 @@ class MapUtils {
   static List<LatLng> filterValidRoutePoints(List<RoadReading> readings) {
     return readings
         .where((r) => isValidCoordinate(r.latitude, r.longitude))
-        .map((r) => LatLng(r.latitude!, r.longitude!))
+        .map((r) => LatLng(r.latitude, r.longitude))
         .toList();
   }
 

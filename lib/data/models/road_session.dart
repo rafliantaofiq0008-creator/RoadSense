@@ -7,6 +7,7 @@ class RoadSession {
   final double? averageSpeed;
   final double? maxSpeed;
   final double? maxVibration;
+  final double? estimatedDistanceKm;
   final int totalEvents;
   final DateTime createdAt;
 
@@ -19,6 +20,7 @@ class RoadSession {
     this.averageSpeed,
     this.maxSpeed,
     this.maxVibration,
+    this.estimatedDistanceKm,
     this.totalEvents = 0,
     required this.createdAt,
   });
@@ -32,6 +34,7 @@ class RoadSession {
     double? averageSpeed,
     double? maxSpeed,
     double? maxVibration,
+    double? estimatedDistanceKm,
     int? totalEvents,
     DateTime? createdAt,
   }) {
@@ -44,6 +47,7 @@ class RoadSession {
       averageSpeed: averageSpeed ?? this.averageSpeed,
       maxSpeed: maxSpeed ?? this.maxSpeed,
       maxVibration: maxVibration ?? this.maxVibration,
+      estimatedDistanceKm: estimatedDistanceKm ?? this.estimatedDistanceKm,
       totalEvents: totalEvents ?? this.totalEvents,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -59,6 +63,7 @@ class RoadSession {
       'average_speed': averageSpeed,
       'max_speed': maxSpeed,
       'max_vibration': maxVibration,
+      if (estimatedDistanceKm != null) 'estimated_distance_km': estimatedDistanceKm,
       'total_events': totalEvents,
       'created_at': createdAt.toIso8601String(),
     };
@@ -74,6 +79,7 @@ class RoadSession {
       averageSpeed: (map['average_speed'] as num?)?.toDouble(),
       maxSpeed: (map['max_speed'] as num?)?.toDouble(),
       maxVibration: (map['max_vibration'] as num?)?.toDouble(),
+      estimatedDistanceKm: (map['estimated_distance_km'] as num?)?.toDouble(),
       totalEvents: map['total_events'] as int? ?? 0,
       createdAt: map['created_at'] != null 
           ? DateTime.parse(map['created_at'] as String) 

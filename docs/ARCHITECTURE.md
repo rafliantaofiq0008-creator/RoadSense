@@ -28,6 +28,7 @@ RoadSense uses a Supabase-only architecture. Data is captured and buffered in me
 2. **TripRecorderService:** Periodically samples the latest vibration and GPS data (via a dedicated 1-second timer) to combine them into a `RoadReading` and save to an in-memory buffer. The 1-second interval avoids overwhelming database sizes compared to saving raw 100ms UI frames, while providing sufficient granularity for pothole mapping.
 3. **PotholeDetectionService:** Evaluates data in real time using every `VibrationSample` and the latest `LocationSample`. It applies thresholds and cooldowns, returning a `PotholeDetectionResult`. This is then converted to a `RoadEvent` and buffered.
 4. **Batch Upload:** `TripRecorderService` flushes its in-memory reading and event buffers to Supabase every 5 seconds.
+5. **PdfReportExportService**: Handles conversion of markdown AI reports and associated road photos into a structured PDF document.
 
 ## Supabase Boundary and Initialization
 Supabase configuration is strictly handled through the `SupabaseConfig` and `SupabaseService` classes. The initialization boundary ensures the client is instantiated only once at startup and that missing environment variables throw immediate errors. Service logic operates independently of how the client was formed.
@@ -65,10 +66,22 @@ The PotholeDetectionService identifies bumps/potholes using threshold-based dete
 - **Lifecycle**: Detected events are saved as `RoadEvent` to the in-memory buffer and flushed to Supabase dynamically.
 
 ## Supabase Map Visualization
-- **Data Flow**: The Map Visualization strictly consumes cloud data from Supabase. It uses `road_readings` to draw the trip route polyline and `road_events` to plot detected anomalies.
+- **Data Flow**: The Map Visualization strictly consumes cloud data from Supabase.
+  - `road_readings`: Raw vibration and GPS samples generated every second
+  - `road_events`: Automatically detected road anomalies (potholes, damaged roads)
+  - `ai_reports`: AI-generated scientific reports in markdown format
+  - `road_photos`: Metadata for visual photo evidence attached to trips
+- **Supabase Storage**
+  - `road-photos` bucket: Stores secure, private road images associated with sessions.
 - **RLS Protection**: Because it relies on `RoadSessionApi`, `RoadReadingApi`, and `RoadEventApi`, map data is protected by Row Level Security (RLS) ensuring users can only fetch and view their own trips.
 - **Map Display**: Uses `flutter_map` with OpenStreetMap tiles. Missing or invalid coordinates are safely filtered out using pure functions in `map_utils.dart`.
 - **Requirements**: Plotting a route requires a minimum of 2 valid GPS readings. Recording longer trips on a real Android device naturally produces better map visualizations, whereas simulator testing or brief 5-second recordings will yield only a few points.
+
+## AI Road Damage Scientific Report
+- **Supabase Edge Functions**
+  - `generate-road-report`: Aggregates trip data (readings, events, photos) and securely calls Google Gemini AI API to generate a structured markdown report.
+- **Data Aggregation**: Before calling the AI, the app aggregates trip data using `RoadReportAnalyzer`, creating a deterministic JSON summary of distance, speeds, and events segmented every 500m.
+- **Reporting Standard**: The AI prompt is strictly instructed to generate formal, scientific Indonesian language suitable for government entities (e.g., Diskominfo, Dinas PUPR) while explicitly noting that data is sensor-based and requires field verification.
 
 ## Privacy and Permission Boundary
 The app strictly respects privacy by requesting permissions only when necessary:

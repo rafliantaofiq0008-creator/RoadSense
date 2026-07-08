@@ -53,10 +53,26 @@ class LocationService {
       rethrow;
     }
 
-    const LocationSettings locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 0, // Update continuously
-    );
+    LocationSettings locationSettings;
+    
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+        forceLocationManager: false,
+        intervalDuration: const Duration(seconds: 1),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: "RoadSense is actively tracking your trip to ensure high accuracy.",
+          notificationTitle: "RoadSense Location Tracking",
+          enableWakeLock: true,
+        ),
+      );
+    } else {
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0,
+      );
+    }
 
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,

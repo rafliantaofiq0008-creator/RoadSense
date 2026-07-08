@@ -8,23 +8,27 @@ import '../core/utils/sampling_timer.dart';
 import '../data/remote/road_session_api.dart';
 import '../data/remote/road_reading_api.dart';
 import '../data/remote/road_event_api.dart';
+import '../data/remote/road_segment_analysis_api.dart';
 import '../data/models/location_sample.dart';
 import '../data/models/road_reading.dart';
 import '../data/models/road_session.dart';
 import '../data/models/vibration_sample.dart';
 import '../data/models/road_event.dart';
 import '../data/models/pothole_detection_result.dart';
+import '../core/services/movement_estimator.dart';
+import '../core/services/road_segment_analyzer.dart';
 import 'auth_service.dart';
 import 'pothole_detection_service.dart';
 
-
-
-class TripRecorderService {
+class TripRecorderService extends ChangeNotifier {
   final RoadSessionApi _sessionApi = RoadSessionApi();
   final RoadReadingApi _readingApi = RoadReadingApi();
   final RoadEventApi _eventApi = RoadEventApi();
+  final RoadSegmentAnalysisApi _segmentApi = RoadSegmentAnalysisApi();
   final AuthService _authService = AuthService();
   final PotholeDetectionService _detectionService = PotholeDetectionService();
+  final MovementEstimator _movementEstimator = MovementEstimator();
+  final RoadSegmentAnalyzer _segmentAnalyzer = RoadSegmentAnalyzer();
 
   bool _isRecording = false;
   String? _activeSessionId;
@@ -53,6 +57,9 @@ class TripRecorderService {
   int get bufferedEventsCount => _eventsBuffer.length;
   int get uploadedEventsCount => _uploadedEventsCount;
   int get generatedEventsCount => _eventsBuffer.length + _uploadedEventsCount;
+  double get totalDistanceKm => _movementEstimator.totalDistanceM / 1000.0;
+  double get currentSpeedKmh => _movementEstimator.smoothedSpeedKmh;
+  RoadSegmentAnalyzer get segmentAnalyzer => _segmentAnalyzer;
 
   PotholeDetectionResult? _latestEvent;
   PotholeDetectionResult? get latestEvent => _latestEvent;
@@ -89,6 +96,9 @@ class TripRecorderService {
     _latestEvent = null;
     _latestVibration = null;
     _latestLocation = null;
+    _movementEstimator.reset();
+    _detectionService.reset();
+    _segmentAnalyzer.reset();
 
     final session = RoadSession(
       id: _activeSessionId!,
@@ -100,6 +110,7 @@ class TripRecorderService {
 
     await _sessionApi.createSession(session);
     _isRecording = true;
+    notifyListeners();
 
     // Start controlled recording interval (1 second)
     _recordingTimer?.stop();
@@ -126,6 +137,13 @@ class TripRecorderService {
     // Flush remaining buffer
     await flushNow();
 
+    // Upload segments
+    _segmentAnalyzer.finalizeTrip(_authService.getCurrentUserId(), sessionId, _movementEstimator.totalDistanceM);
+    final segments = _segmentAnalyzer.finalizeSegments();
+    if (segments.isNotEmpty) {
+      await _segmentApi.insertSegments(segments);
+    }
+
     if (_uploadedReadingsCount == 0 && _uploadedEventsCount == 0) {
       // Empty session, delete it from Supabase
       try {
@@ -142,6 +160,10 @@ class TripRecorderService {
     _activeSessionId = null;
     _latestVibration = null;
     _latestLocation = null;
+    _movementEstimator.reset();
+    _detectionService.reset();
+    _segmentAnalyzer.reset();
+    notifyListeners();
   }
 
   void updateLatestVibration(VibrationSample sample) {
@@ -153,11 +175,24 @@ class TripRecorderService {
         _latestEvent = result;
         _bufferRoadEvent(result);
       }
+      
+      _segmentAnalyzer.processData(
+        userId: _authService.getCurrentUserId(),
+        sessionId: _activeSessionId!,
+        location: _latestLocation,
+        vibration: sample,
+        event: result,
+        totalDistanceM: _movementEstimator.totalDistanceM,
+      );
     }
   }
 
   void updateLatestLocation(LocationSample sample) {
-    _latestLocation = sample;
+    if (_isRecording) {
+      _latestLocation = _movementEstimator.processLocation(sample);
+    } else {
+      _latestLocation = sample;
+    }
   }
 
   void _bufferRoadEvent(PotholeDetectionResult result) {
@@ -176,12 +211,19 @@ class TripRecorderService {
       longitude: result.longitude,
       gpsAccuracy: result.gpsAccuracy,
       recordedAt: result.timestamp,
+      confidenceScore: result.confidenceScore,
+      verticalPeak: result.verticalPeak,
+      lateralPeak: result.lateralPeak,
+      jerkPeak: result.jerkPeak,
+      validationStatus: result.validationStatus,
+      rejectionReason: result.rejectionReason,
     );
     
-    _eventsBuffer.add(event);
+    if (result.validationStatus == 'valid') {
+      _eventsBuffer.add(event);
+    }
   }
 
-  /// Combine readings in memory
   void _combineReading() {
     if (!_isRecording || _activeSessionId == null) return;
     if (_latestVibration == null || _latestLocation == null) return;
@@ -189,7 +231,6 @@ class TripRecorderService {
     final vib = _latestVibration!;
     final loc = _latestLocation!;
 
-    // Do not save if GPS accuracy is poor (> 25m)
     if (loc.accuracy > 25.0) return;
 
     final userId = _authService.getCurrentUserId();
@@ -212,13 +253,11 @@ class TripRecorderService {
 
     _readingsBuffer.add(reading);
 
-    // Batch flush dynamically if reaching limit between intervals
     if (_readingsBuffer.length >= 25 || _eventsBuffer.length >= 25) {
       flushNow();
     }
   }
 
-  /// Flush buffer to Supabase
   Future<void> flushNow() async {
     if (_readingsBuffer.isEmpty && _eventsBuffer.isEmpty) return;
 
@@ -241,11 +280,9 @@ class TripRecorderService {
     } catch (e) {
       debugPrint('TripRecorderService Error uploading batch: $e');
       _lastUploadError = e.toString();
-      // Buffers are intentionally not cleared on error so data is retained for the next attempt
     }
   }
 
-  /// Update trip summary
   Future<void> _updateSummary(String sessionId) async {
     try {
       final session = await _sessionApi.getSessionById(sessionId);
@@ -254,12 +291,16 @@ class TripRecorderService {
       final readings = await _readingApi.getReadingsBySessionId(sessionId);
       final events = await _eventApi.getEventsBySessionId(sessionId);
       
-      final updatedSession = TripSummaryCalculator.calculateSummary(
+      var updatedSession = TripSummaryCalculator.calculateSummary(
         session.copyWith(
           endTime: DateTime.now().toUtc(),
           totalEvents: events.length,
         ),
         readings,
+      );
+      
+      updatedSession = updatedSession.copyWith(
+        estimatedDistanceKm: _movementEstimator.totalDistanceM / 1000.0,
       );
 
       await _sessionApi.updateSessionSummary(updatedSession);
@@ -268,9 +309,10 @@ class TripRecorderService {
     }
   }
 
+  @override
   void dispose() {
     _recordingTimer?.stop();
     _uploadTimer?.stop();
-    _isRecording = false;
+    super.dispose();
   }
 }
