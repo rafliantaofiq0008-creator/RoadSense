@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../config/tracking_sensitivity.dart';
 import '../../data/models/location_sample.dart';
 import '../../data/models/pothole_detection_result.dart';
 import '../../data/models/road_segment_analysis.dart';
@@ -6,6 +7,7 @@ import '../../data/models/vibration_sample.dart';
 
 class RoadSegmentAnalyzer {
   final double segmentSizeM = 100.0;
+  TrackingSensitivityProfile _profile = TrackingSensitivityProfile.car;
   
   // Current segment state
   int _currentSegmentIndex = 0;
@@ -19,6 +21,11 @@ class RoadSegmentAnalyzer {
   final List<RoadSegmentAnalysis> _completedSegments = [];
 
   List<RoadSegmentAnalysis> get completedSegments => _completedSegments;
+  TrackingSensitivityProfile get profile => _profile;
+
+  void configureProfile(TrackingSensitivityProfile profile) {
+    _profile = profile;
+  }
   
   void reset() {
     _currentSegmentIndex = 0;
@@ -73,6 +80,7 @@ class RoadSegmentAnalyzer {
       locations: _segmentLocations,
       vibrations: _segmentVibrations,
       events: _segmentEvents,
+      profile: _profile,
       userId: userId,
       sessionId: sessionId,
     );
@@ -95,6 +103,7 @@ class RoadSegmentAnalyzer {
       locations: _segmentLocations,
       vibrations: _segmentVibrations,
       events: _segmentEvents,
+      profile: _profile,
       userId: '',
       sessionId: '',
     );
@@ -107,6 +116,7 @@ class RoadSegmentAnalyzer {
     required List<LocationSample> locations,
     required List<VibrationSample> vibrations,
     required List<PotholeDetectionResult> events,
+    TrackingSensitivityProfile profile = TrackingSensitivityProfile.car,
     required String userId,
     required String sessionId,
   }) {
@@ -132,9 +142,9 @@ class RoadSegmentAnalyzer {
     double maxLateral = 0;
 
     if (vibrations.isNotEmpty) {
-      double sumVib = vibrations.map((v) => v.magnitude).reduce((a, b) => a + b);
+      double sumVib = vibrations.map((v) => v.vibration).reduce((a, b) => a + b);
       avgVibration = sumVib / vibrations.length;
-      maxVibration = vibrations.map((v) => v.magnitude).reduce((a, b) => max(a, b));
+      maxVibration = vibrations.map((v) => v.vibration).reduce((a, b) => max(a, b));
     }
     
     // We don't store raw vertical peak in VibrationSample currently, but we do in PotholeDetectionResult
@@ -160,7 +170,8 @@ class RoadSegmentAnalyzer {
     String confidence = 'low';
 
     // Core Logic Rules
-    if (segmentLengthM < 50 || avgSpeed < 5) {
+    if (segmentLengthM < profile.segmentMinAssessmentDistanceM ||
+        avgSpeed < profile.segmentMinAssessmentSpeedKmh) {
       roadCondition = 'not_assessed';
       score = null;
       recommendation = 'Survei ulang dengan jarak dan kecepatan memadai';

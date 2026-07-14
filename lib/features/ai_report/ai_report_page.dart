@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:intl/intl.dart';
 import '../../data/models/ai_report.dart';
 import '../../core/services/pdf_report_export_service.dart';
 import '../../data/remote/road_photo_api.dart';
+import '../../core/utils/app_date_time.dart';
+import '../../shared/widgets/status_badge.dart';
 
 class AiReportPage extends StatelessWidget {
   final AiReport report;
@@ -244,7 +245,7 @@ class AiReportPage extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Generated: ${DateFormat('MMM d, yyyy - HH:mm').format(report.generatedAt.toLocal())}',
+                  'Generated: ${AppDateTime.formatSession(report.generatedAt)}',
                   style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
                 Text(
@@ -275,9 +276,10 @@ class AiReportPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Disclaimer: Laporan ini adalah indikasi berbasis sensor smartphone dan memerlukan verifikasi lapangan.',
-                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.red),
+                const StatusBadge(
+                  label: 'Perlu verifikasi lapangan',
+                  color: Colors.red,
+                  icon: Icons.info_outline_rounded,
                 ),
               ],
             ),

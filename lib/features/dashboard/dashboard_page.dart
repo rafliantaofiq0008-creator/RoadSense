@@ -3,6 +3,8 @@ import '../../services/auth_service.dart';
 import '../live_tracking/live_tracking_page.dart';
 import '../history/history_page.dart';
 import '../map/map_page.dart';
+import '../../shared/widgets/app_surface_card.dart';
+import '../../shared/widgets/status_badge.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -15,10 +17,11 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('RoadSense'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -37,166 +40,294 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: ListView(
-            children: [
-              const Icon(
-                Icons.dashboard_rounded,
-                size: 64,
-                color: Colors.blueAccent,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Welcome to RoadSense!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Signed in as: ${user?.email ?? "Unknown"}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              
-              // Cloud Database Status Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Cloud Database',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          Icon(Icons.cloud_done, color: Colors.green[600]),
-                        ],
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65)),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.06),
+                  blurRadius: 26,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      const Divider(),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          'RoadSense uses Supabase for all persistent storage. Active internet is required for recording trips.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Kontrol Utama',
+                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const StatusBadge(
+                  label: 'Cloud Sync Ready',
+                  color: Color(0xFF2D5364),
+                  icon: Icons.cloud_done_rounded,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Akses cepat ke pengujian jalan, histori, dan peta dalam satu dashboard yang lebih rapi dan mudah dipakai.',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(Icons.route_rounded, color: theme.colorScheme.primary, size: 26),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'RoadSense siap dipakai',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user?.email ?? 'Akun tidak dikenal',
+                              style: theme.textTheme.bodyMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          AppSurfaceCard(
+            title: 'Status sistem',
+            subtitle: 'Disusun agar alur pengujian lebih mudah dibaca sebelum rekam data.',
+            accentColor: theme.colorScheme.secondary,
+            trailing: Icon(Icons.tune_rounded, color: theme.colorScheme.secondary),
+            child: Column(
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final stacked = constraints.maxWidth < 360;
+                    if (stacked) {
+                      return Column(
+                        children: [
+                          _buildMiniStat(
+                            context,
+                            label: 'Database',
+                            value: 'Supabase',
+                            hint: 'Sinkron cloud aktif',
+                            color: theme.colorScheme.tertiary,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildMiniStat(
+                            context,
+                            label: 'Mode utama',
+                            value: 'Live GPS',
+                            hint: 'Tracking realtime',
+                            color: theme.colorScheme.primary,
+                          ),
+                        ],
+                      );
+                    }
 
-              // Live Tracking Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: InkWell(
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _buildMiniStat(
+                            context,
+                            label: 'Database',
+                            value: 'Supabase',
+                            hint: 'Sinkron cloud aktif',
+                            color: theme.colorScheme.tertiary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildMiniStat(
+                            context,
+                            label: 'Mode utama',
+                            value: 'Live GPS',
+                            hint: 'Tracking realtime',
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          AppSurfaceCard(
+            title: 'Aksi cepat',
+            subtitle: 'Tiga alur utama untuk pengujian jalan, analisis histori, dan verifikasi di peta.',
+            accentColor: theme.colorScheme.primary,
+            child: Column(
+              children: [
+                _buildActionTile(
+                  context,
+                  icon: Icons.speed_rounded,
+                  color: theme.colorScheme.primary,
+                  title: 'Live Tracking',
+                  description: 'Preview sensor, cek GPS realtime, lalu mulai recording ke cloud.',
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const LiveTrackingPage()),
                     );
                   },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        Icon(Icons.speed, size: 48, color: Colors.blue[600]),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Live Tracking (Cloud Recording)',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Test accelerometer readings and record trips directly to Supabase.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              
-              // History Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: InkWell(
+                const SizedBox(height: 12),
+                _buildActionTile(
+                  context,
+                  icon: Icons.history_rounded,
+                  color: theme.colorScheme.tertiary,
+                  title: 'Trip History',
+                  description: 'Buka sesi yang sudah direkam beserta ringkasan kecepatan, waktu, dan event.',
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const HistoryPage()),
                     );
                   },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        Icon(Icons.history, size: 48, color: Colors.green[600]),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Cloud Trip History',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'View your previously recorded trips fetched from Supabase.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Map Visualization Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: InkWell(
+                const SizedBox(height: 12),
+                _buildActionTile(
+                  context,
+                  icon: Icons.map_rounded,
+                  color: theme.colorScheme.secondary,
+                  title: 'Map Visualization',
+                  description: 'Lihat rute dan titik event secara spasial agar validasi lebih cepat.',
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const MapPage()),
                     );
                   },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        Icon(Icons.map, size: 48, color: Colors.purple[600]),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Map Visualization',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'View recorded trip routes and detected road events on a map.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required String hint,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleLarge?.copyWith(color: color),
+          ),
+          const SizedBox(height: 4),
+          Text(hint, style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String description,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(description, style: theme.textTheme.bodyMedium),
+                  ],
                 ),
               ),
+              const SizedBox(width: 12),
+              Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -204,4 +335,3 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 }
-

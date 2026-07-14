@@ -16,6 +16,12 @@ void main() {
       expect(LocationCalculator.isMoving(60.0), isTrue);
     });
 
+    test('isMoving can use a custom threshold', () {
+      expect(LocationCalculator.isMoving(0.5, thresholdKmh: 0.6), isFalse);
+      expect(LocationCalculator.isMoving(0.6, thresholdKmh: 0.6), isTrue);
+      expect(LocationCalculator.isMoving(2.0, thresholdKmh: 2.0), isTrue);
+    });
+
     test('isGpsAccuracyAcceptable should return true only if accuracy <= 25.0', () {
       expect(LocationCalculator.isGpsAccuracyAcceptable(5.0), isTrue);
       expect(LocationCalculator.isGpsAccuracyAcceptable(25.0), isTrue);

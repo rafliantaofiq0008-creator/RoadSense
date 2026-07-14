@@ -1,3 +1,5 @@
+import '../../core/utils/app_date_time.dart';
+
 class RoadReading {
   final String id;
   final String sessionId;
@@ -75,7 +77,7 @@ class RoadReading {
       'latitude': latitude,
       'longitude': longitude,
       'gps_accuracy': gpsAccuracy,
-      'recorded_at': recordedAt.toIso8601String(),
+      'recorded_at': recordedAt.toUtc().toIso8601String(),
     };
   }
 
@@ -93,7 +95,7 @@ class RoadReading {
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
       gpsAccuracy: (map['gps_accuracy'] as num).toDouble(),
-      recordedAt: DateTime.parse(map['recorded_at'] as String),
+      recordedAt: AppDateTime.parseServer(map['recorded_at'] as String?),
     );
   }
 }

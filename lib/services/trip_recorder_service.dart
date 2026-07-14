@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/config/tracking_sensitivity.dart';
 import '../core/utils/trip_summary_calculator.dart';
+import '../core/utils/app_date_time.dart';
 import '../core/utils/recording_validator.dart';
 import '../core/utils/sampling_timer.dart';
 import '../data/remote/road_session_api.dart';
@@ -29,6 +31,7 @@ class TripRecorderService extends ChangeNotifier {
   final PotholeDetectionService _detectionService = PotholeDetectionService();
   final MovementEstimator _movementEstimator = MovementEstimator();
   final RoadSegmentAnalyzer _segmentAnalyzer = RoadSegmentAnalyzer();
+  TrackingSensitivityMode _sensitivityMode = TrackingSensitivityMode.car;
 
   bool _isRecording = false;
   String? _activeSessionId;
@@ -60,9 +63,33 @@ class TripRecorderService extends ChangeNotifier {
   double get totalDistanceKm => _movementEstimator.totalDistanceM / 1000.0;
   double get currentSpeedKmh => _movementEstimator.smoothedSpeedKmh;
   RoadSegmentAnalyzer get segmentAnalyzer => _segmentAnalyzer;
+  TrackingSensitivityMode get sensitivityMode => _sensitivityMode;
+  TrackingSensitivityProfile get sensitivityProfile => TrackingSensitivityProfile.forMode(_sensitivityMode);
 
   PotholeDetectionResult? _latestEvent;
   PotholeDetectionResult? get latestEvent => _latestEvent;
+
+  TripRecorderService() {
+    final profile = sensitivityProfile;
+    _movementEstimator.configureProfile(profile);
+    _segmentAnalyzer.configureProfile(profile);
+  }
+
+  void resetMotionTracking() {
+    _movementEstimator.reset();
+    if (_latestLocation != null) {
+      _latestLocation = _latestLocation!.copyWith(speedKmh: 0.0);
+    }
+  }
+
+  void setSensitivityMode(TrackingSensitivityMode mode) {
+    if (_sensitivityMode == mode) return;
+    _sensitivityMode = mode;
+    final profile = sensitivityProfile;
+    _movementEstimator.configureProfile(profile);
+    _segmentAnalyzer.configureProfile(profile);
+    notifyListeners();
+  }
 
   RecordingReadinessChecklist getRecordingReadiness() {
     bool isAuth = false;
@@ -94,8 +121,8 @@ class TripRecorderService extends ChangeNotifier {
     _uploadedReadingsCount = 0;
     _uploadedEventsCount = 0;
     _latestEvent = null;
-    _latestVibration = null;
-    _latestLocation = null;
+    // Do NOT clear _latestVibration and _latestLocation here, as they represent the current state
+    // and we need them to start recording immediately without waiting for the next stream event.
     _movementEstimator.reset();
     _detectionService.reset();
     _segmentAnalyzer.reset();
@@ -103,9 +130,9 @@ class TripRecorderService extends ChangeNotifier {
     final session = RoadSession(
       id: _activeSessionId!,
       userId: userId,
-      title: title ?? 'Road Trip ${DateTime.now().toUtc().toString().substring(0, 16)}',
-      startTime: DateTime.now().toUtc(),
-      createdAt: DateTime.now().toUtc(),
+      title: title ?? AppDateTime.autoTripTitle(),
+      startTime: AppDateTime.nowUtc(),
+      createdAt: AppDateTime.nowUtc(),
     );
 
     await _sessionApi.createSession(session);
@@ -174,25 +201,20 @@ class TripRecorderService extends ChangeNotifier {
       if (result != null) {
         _latestEvent = result;
         _bufferRoadEvent(result);
+        _segmentAnalyzer.processData(
+          userId: _authService.getCurrentUserId(),
+          sessionId: _activeSessionId!,
+          location: null,
+          vibration: null,
+          event: result,
+          totalDistanceM: _movementEstimator.totalDistanceM,
+        );
       }
-      
-      _segmentAnalyzer.processData(
-        userId: _authService.getCurrentUserId(),
-        sessionId: _activeSessionId!,
-        location: _latestLocation,
-        vibration: sample,
-        event: result,
-        totalDistanceM: _movementEstimator.totalDistanceM,
-      );
     }
   }
 
   void updateLatestLocation(LocationSample sample) {
-    if (_isRecording) {
-      _latestLocation = _movementEstimator.processLocation(sample);
-    } else {
-      _latestLocation = sample;
-    }
+    _latestLocation = _movementEstimator.processLocation(sample);
   }
 
   void _bufferRoadEvent(PotholeDetectionResult result) {
@@ -248,7 +270,16 @@ class TripRecorderService extends ChangeNotifier {
       latitude: loc.latitude,
       longitude: loc.longitude,
       gpsAccuracy: loc.accuracy,
-      recordedAt: DateTime.now().toUtc(),
+      recordedAt: AppDateTime.nowUtc(),
+    );
+
+    _segmentAnalyzer.processData(
+      userId: userId,
+      sessionId: _activeSessionId!,
+      location: loc,
+      vibration: vib,
+      event: null,
+      totalDistanceM: _movementEstimator.totalDistanceM,
     );
 
     _readingsBuffer.add(reading);
@@ -293,7 +324,7 @@ class TripRecorderService extends ChangeNotifier {
       
       var updatedSession = TripSummaryCalculator.calculateSummary(
         session.copyWith(
-          endTime: DateTime.now().toUtc(),
+          endTime: AppDateTime.nowUtc(),
           totalEvents: events.length,
         ),
         readings,

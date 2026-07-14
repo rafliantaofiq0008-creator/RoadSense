@@ -1,4 +1,4 @@
-package com.example.roadsense
+package id.roadsense.app
 
 import io.flutter.embedding.android.FlutterActivity
 

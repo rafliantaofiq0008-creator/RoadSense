@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/road_session.dart';
 import 'supabase_service.dart';
 
@@ -62,6 +64,27 @@ class RoadSessionApi {
     // but we can also filter by user_id explicitly just in case.
     final userId = SupabaseService.currentUser.id;
 
+    // 1. Delete associated photo files from Supabase Storage first
+    try {
+      final photosResponse = await client
+          .from('road_photos')
+          .select('storage_bucket, storage_path')
+          .eq('session_id', id);
+
+      final photos = photosResponse as List<dynamic>;
+      for (var photo in photos) {
+        final bucket = photo['storage_bucket'] as String?;
+        final path = photo['storage_path'] as String?;
+        if (bucket != null && path != null) {
+          await client.storage.from(bucket).remove([path]);
+        }
+      }
+    } catch (e) {
+      // Ignore errors during file cleanup so the session can still be deleted
+      debugPrint('Warning: Failed to cleanup storage files for session: $e');
+    }
+
+    // 2. Delete the session from DB (Cascade will delete readings, events, photos DB rows)
     await client
         .from(tableName)
         .delete()

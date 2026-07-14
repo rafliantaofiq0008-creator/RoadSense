@@ -1,3 +1,5 @@
+import '../../core/utils/app_date_time.dart';
+
 class RoadEvent {
   final String id;
   final String sessionId;
@@ -112,7 +114,7 @@ class RoadEvent {
       'latitude': latitude,
       'longitude': longitude,
       'gps_accuracy': gpsAccuracy,
-      'recorded_at': recordedAt.toIso8601String(),
+      'recorded_at': recordedAt.toUtc().toIso8601String(),
       if (confidenceScore != null) 'confidence_score': confidenceScore,
       if (verticalPeak != null) 'vertical_peak': verticalPeak,
       if (lateralPeak != null) 'lateral_peak': lateralPeak,
@@ -139,7 +141,7 @@ class RoadEvent {
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
       gpsAccuracy: (map['gps_accuracy'] as num).toDouble(),
-      recordedAt: DateTime.parse(map['recorded_at'] as String),
+      recordedAt: AppDateTime.parseServer(map['recorded_at'] as String?),
       confidenceScore: map['confidence_score'] as int?,
       verticalPeak: (map['vertical_peak'] as num?)?.toDouble(),
       lateralPeak: (map['lateral_peak'] as num?)?.toDouble(),

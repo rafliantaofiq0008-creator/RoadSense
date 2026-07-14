@@ -6,8 +6,8 @@ class LocationCalculator {
 
   /// Determines if the user is moving based on the current speed in km/h.
   /// Currently uses a simple threshold of 5.0 km/h.
-  static bool isMoving(double speedKmh) {
-    return speedKmh >= 5.0;
+  static bool isMoving(double speedKmh, {double thresholdKmh = 5.0}) {
+    return speedKmh >= thresholdKmh;
   }
 
   /// Determines if the GPS accuracy is acceptable for data collection.

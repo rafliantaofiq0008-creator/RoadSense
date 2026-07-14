@@ -1,17 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/core/services/road_segment_analyzer.dart';
-import '../lib/data/models/location_sample.dart';
-import '../lib/data/models/pothole_detection_result.dart';
-import '../lib/data/models/vibration_sample.dart';
+import 'package:roadsense/core/config/tracking_sensitivity.dart';
+import 'package:roadsense/core/services/road_segment_analyzer.dart';
+import 'package:roadsense/data/models/location_sample.dart';
+import 'package:roadsense/data/models/pothole_detection_result.dart';
+import 'package:roadsense/data/models/vibration_sample.dart';
 
 void main() {
   group('RoadSegmentAnalyzer Tests', () {
-    late RoadSegmentAnalyzer analyzer;
-
-    setUp(() {
-      analyzer = RoadSegmentAnalyzer();
-    });
-
     test('Short distance (<50m) results in not_assessed', () {
       final analysis = RoadSegmentAnalyzer.buildSegmentAnalysis(
         segmentIndex: 1,
@@ -47,6 +42,27 @@ void main() {
       expect(analysis.roadCondition, 'not_assessed');
     });
 
+    test('Walking mode can assess shorter and slower segments', () {
+      final analysis = RoadSegmentAnalyzer.buildSegmentAnalysis(
+        segmentIndex: 1,
+        startDistanceM: 0,
+        endDistanceM: 30,
+        locations: [
+          LocationSample(latitude: 0, longitude: 0, speedKmh: 2.0, speedMetersPerSecond: 2.0 / 3.6, accuracy: 5, timestamp: DateTime.now())
+        ],
+        vibrations: [
+          VibrationSample(x: 0, y: 0, z: 0, magnitude: 0.8, vibration: 0.8, timestamp: DateTime.now())
+        ],
+        events: [],
+        profile: TrackingSensitivityProfile.walking,
+        userId: '123',
+        sessionId: '456',
+      );
+
+      expect(analysis.roadCondition, 'good');
+      expect(analysis.conditionScore, 20.0);
+    });
+
     test('Valid speed + no events + low vibration = good', () {
       final analysis = RoadSegmentAnalyzer.buildSegmentAnalysis(
         segmentIndex: 1,
@@ -65,6 +81,28 @@ void main() {
       
       expect(analysis.roadCondition, 'good');
       expect(analysis.conditionScore, 20.0);
+    });
+
+    test('Uses vibration field instead of raw magnitude for segment vibration metrics', () {
+      final analysis = RoadSegmentAnalyzer.buildSegmentAnalysis(
+        segmentIndex: 1,
+        startDistanceM: 0,
+        endDistanceM: 100,
+        locations: [
+          LocationSample(latitude: 0, longitude: 0, speedKmh: 30, speedMetersPerSecond: 30 / 3.6, accuracy: 5, timestamp: DateTime.now())
+        ],
+        vibrations: [
+          VibrationSample(x: 0, y: 0, z: 9.81, magnitude: 9.81, vibration: 1.2, timestamp: DateTime.now()),
+          VibrationSample(x: 0, y: 0, z: 9.81, magnitude: 9.81, vibration: 1.8, timestamp: DateTime.now()),
+        ],
+        events: [],
+        userId: '123',
+        sessionId: '456',
+      );
+
+      expect(analysis.avgVibration, closeTo(1.5, 0.001));
+      expect(analysis.maxVibration, closeTo(1.8, 0.001));
+      expect(analysis.roadCondition, 'good');
     });
 
     test('Valid speed + pothole event = pothole_indication', () {

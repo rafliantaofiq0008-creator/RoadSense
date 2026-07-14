@@ -1,3 +1,5 @@
+import '../../core/utils/app_date_time.dart';
+
 class AiReport {
   final String id;
   final String userId;
@@ -36,8 +38,8 @@ class AiReport {
       inputSummary: map['input_summary'] as Map<String, dynamic>?,
       reportMarkdown: map['report_markdown'] as String,
       modelName: map['model_name'] as String?,
-      generatedAt: DateTime.parse(map['generated_at'] as String),
-      createdAt: DateTime.parse(map['created_at'] as String),
+      generatedAt: AppDateTime.parseServer(map['generated_at'] as String?),
+      createdAt: AppDateTime.parseServer(map['created_at'] as String?),
     );
   }
 
@@ -52,8 +54,8 @@ class AiReport {
       'input_summary': inputSummary,
       'report_markdown': reportMarkdown,
       'model_name': modelName,
-      'generated_at': generatedAt.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
+      'generated_at': generatedAt.toUtc().toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
 }

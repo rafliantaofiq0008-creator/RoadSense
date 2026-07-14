@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/utils/map_utils.dart';
+import '../../core/utils/app_date_time.dart';
 import '../../data/models/road_session.dart';
 import '../../data/models/road_event.dart';
 import '../../data/remote/road_session_api.dart';
 import '../../data/remote/road_reading_api.dart';
 import '../../data/remote/road_event_api.dart';
+import '../../shared/widgets/app_surface_card.dart';
+import '../../shared/widgets/status_badge.dart';
 
 class MapPage extends StatefulWidget {
   final String? initialSessionId;
@@ -113,7 +115,7 @@ class _MapPageState extends State<MapPage> {
               Text('Speed: ${event.speed.toStringAsFixed(1)} km/h'),
               Text('GPS Accuracy: ${event.gpsAccuracy.toStringAsFixed(1)} m'),
               Text('Coordinates: ${event.latitude.toStringAsFixed(5)}, ${event.longitude.toStringAsFixed(5)}'),
-              Text('Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(event.recordedAt.toLocal())}'),
+              Text('Time: ${AppDateTime.formatDetailed(event.recordedAt)}'),
               const SizedBox(height: 16),
             ],
           ),
@@ -133,22 +135,31 @@ class _MapPageState extends State<MapPage> {
           // Session Selector
           if (_sessions.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: DropdownButtonFormField<RoadSession>(
-                decoration: const InputDecoration(
-                  labelText: 'Select Trip Session',
-                  border: OutlineInputBorder(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: AppSurfaceCard(
+                title: 'Pilih sesi trip',
+                subtitle: 'Gunakan peta untuk membandingkan rute dan titik event pada sesi yang berbeda.',
+                accentColor: Theme.of(context).colorScheme.primary,
+                trailing: const StatusBadge(
+                  label: 'OSM',
+                  color: Color(0xFF2D5364),
+                  icon: Icons.layers_rounded,
                 ),
-                initialValue: _selectedSession,
-                isExpanded: true,
-                items: _sessions.map((session) {
-                  final start = DateFormat('yyyy-MM-dd HH:mm').format(session.startTime.toLocal());
-                  return DropdownMenuItem(
-                    value: session,
-                    child: Text('$start - ${session.id.substring(0, 8)}'),
-                  );
-                }).toList(),
-                onChanged: _onSessionSelected,
+                child: DropdownButtonFormField<RoadSession>(
+                  decoration: const InputDecoration(
+                    labelText: 'Trip session',
+                  ),
+                  initialValue: _selectedSession,
+                  isExpanded: true,
+                  items: _sessions.map((session) {
+                    final start = AppDateTime.formatSession(session.startTime);
+                    return DropdownMenuItem(
+                      value: session,
+                      child: Text('${AppDateTime.displaySessionTitle(session)} • $start'),
+                    );
+                  }).toList(),
+                  onChanged: _onSessionSelected,
+                ),
               ),
             ),
             
@@ -175,10 +186,16 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (_routePoints.length < 2 && _events.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('Not enough GPS points to draw a route for this trip.'),
+          padding: const EdgeInsets.all(16.0),
+          child: AppSurfaceCard(
+            title: 'Rute belum cukup',
+            subtitle: 'Trip ini belum memiliki cukup titik GPS untuk digambar sebagai lintasan.',
+            accentColor: Theme.of(context).colorScheme.secondary,
+            trailing: Icon(Icons.gps_off_rounded, color: Theme.of(context).colorScheme.secondary),
+            child: const Text('Coba pilih sesi lain atau rekam ulang dengan GPS yang lebih stabil.'),
+          ),
         ),
       );
     }
@@ -230,4 +247,3 @@ class _MapPageState extends State<MapPage> {
     );
   }
 }
-
