@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /dist/
 /coverage/
+tmp_apk_icons*/
 
 # Symbolication related
 app.*.symbols

@@ -20,6 +20,15 @@ class _HistoryPageState extends State<HistoryPage> {
   List<RoadSession> _sessions = [];
   bool _isLoading = true;
 
+  double _bottomSafeSpace(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final baseBottomInset =
+        mediaQuery.viewPadding.bottom > mediaQuery.padding.bottom
+        ? mediaQuery.viewPadding.bottom
+        : mediaQuery.padding.bottom;
+    return baseBottomInset + mediaQuery.systemGestureInsets.bottom + 56;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -114,7 +123,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(24, 24, 24, _bottomSafeSpace(context)),
         child: AppSurfaceCard(
           title: 'Belum ada trip',
           subtitle:
@@ -137,11 +146,13 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildList() {
+    final bottomSafeSpace = _bottomSafeSpace(context);
+
     return RefreshIndicator(
       onRefresh: _loadSessions,
       child: ListView.builder(
         itemCount: _sessions.length,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, bottomSafeSpace),
         itemBuilder: (context, index) {
           final session = _sessions[index];
           final theme = Theme.of(context);

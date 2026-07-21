@@ -12,6 +12,15 @@ class AiReportPage extends StatelessWidget {
 
   const AiReportPage({super.key, required this.report});
 
+  double _bottomSafeSpace(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final baseBottomInset =
+        mediaQuery.viewPadding.bottom > mediaQuery.padding.bottom
+        ? mediaQuery.viewPadding.bottom
+        : mediaQuery.padding.bottom;
+    return baseBottomInset + mediaQuery.systemGestureInsets.bottom + 56;
+  }
+
   Widget _buildInfoBadge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -33,7 +42,7 @@ class AiReportPage extends StatelessWidget {
 
   Widget _buildConfidenceBadge(String? confidence) {
     if (confidence == null) return const SizedBox.shrink();
-    
+
     Color badgeColor;
     IconData badgeIcon;
     String badgeText;
@@ -120,23 +129,39 @@ class AiReportPage extends StatelessWidget {
 
   Widget _buildScrollableMarkdown(BuildContext context, String markdownData) {
     final blocks = _splitMarkdownBlocks(markdownData);
+    final bottomSafeSpace = _bottomSafeSpace(context);
     final styleSheet = MarkdownStyleSheet(
-      h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
-      h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+      h1: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
+      h2: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.blueAccent,
+      ),
       h3: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       p: const TextStyle(fontSize: 15, height: 1.5),
       tableBorder: TableBorder.all(color: Colors.grey.shade300, width: 1),
-      tableHead: const TextStyle(fontWeight: FontWeight.bold, backgroundColor: Colors.black12, fontSize: 13),
+      tableHead: const TextStyle(
+        fontWeight: FontWeight.bold,
+        backgroundColor: Colors.black12,
+        fontSize: 13,
+      ),
       tableBody: const TextStyle(fontSize: 13),
       tableCellsPadding: const EdgeInsets.all(12),
     );
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomSafeSpace),
       itemCount: blocks.length,
       itemBuilder: (context, index) {
         final block = blocks[index];
-        final isTable = block.trim().startsWith('|') && block.trim().endsWith('|') && block.contains('---');
+        final isTable =
+            block.trim().startsWith('|') &&
+            block.trim().endsWith('|') &&
+            block.contains('---');
 
         if (isTable) {
           final firstLine = block.trim().split('\n').first;
@@ -174,7 +199,9 @@ class AiReportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final confidence = report.inputSummary?['data_quality']?['data_confidence_level']?.toString();
+    final confidence = report
+        .inputSummary?['data_quality']?['data_confidence_level']
+        ?.toString();
 
     return Scaffold(
       appBar: AppBar(
@@ -208,13 +235,17 @@ class AiReportPage extends StatelessWidget {
                 ),
               );
               try {
-                final photos = await RoadPhotoApi().getPhotosForSession(report.sessionId);
+                final photos = await RoadPhotoApi().getPhotosForSession(
+                  report.sessionId,
+                );
                 await PdfReportExportService().exportReport(report, photos);
                 if (context.mounted) Navigator.pop(context);
               } catch (e) {
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to generate PDF: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to generate PDF: $e')),
+                  );
                 }
               }
             },
@@ -240,7 +271,11 @@ class AiReportPage extends StatelessWidget {
                   ),
                   subtitle: Text(
                     'Type: ${report.reportType.toUpperCase()}',
-                    style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.blueGrey,
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -265,14 +300,34 @@ class AiReportPage extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _buildConfidenceBadge(confidence),
-                    if (report.inputSummary?['road_condition_assessment']?['road_risk_level'] != null)
-                      _buildInfoBadge('Risk: ${report.inputSummary?['road_condition_assessment']?['road_risk_level']}', Colors.purple),
-                    if (report.inputSummary?['data_quality']?['report_validity_status'] != null)
-                      _buildInfoBadge('Validity: ${report.inputSummary?['data_quality']?['report_validity_status']}', Colors.indigo),
-                    if (report.inputSummary?['technical_scores']?['road_damage_score'] != null)
-                      _buildInfoBadge('Damage Score: ${report.inputSummary?['technical_scores']?['road_damage_score']}', Colors.teal),
-                    if (report.inputSummary?['government_workflow']?['recommended_status'] != null)
-                      _buildInfoBadge('Workflow: ${report.inputSummary?['government_workflow']?['recommended_status']}', Colors.deepOrange),
+                    if (report
+                            .inputSummary?['road_condition_assessment']?['road_risk_level'] !=
+                        null)
+                      _buildInfoBadge(
+                        'Risk: ${report.inputSummary?['road_condition_assessment']?['road_risk_level']}',
+                        Colors.purple,
+                      ),
+                    if (report
+                            .inputSummary?['data_quality']?['report_validity_status'] !=
+                        null)
+                      _buildInfoBadge(
+                        'Validity: ${report.inputSummary?['data_quality']?['report_validity_status']}',
+                        Colors.indigo,
+                      ),
+                    if (report
+                            .inputSummary?['technical_scores']?['road_damage_score'] !=
+                        null)
+                      _buildInfoBadge(
+                        'Damage Score: ${report.inputSummary?['technical_scores']?['road_damage_score']}',
+                        Colors.teal,
+                      ),
+                    if (report
+                            .inputSummary?['government_workflow']?['recommended_status'] !=
+                        null)
+                      _buildInfoBadge(
+                        'Workflow: ${report.inputSummary?['government_workflow']?['recommended_status']}',
+                        Colors.deepOrange,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -18,6 +18,13 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final baseBottomInset =
+        mediaQuery.viewPadding.bottom > mediaQuery.padding.bottom
+        ? mediaQuery.viewPadding.bottom
+        : mediaQuery.padding.bottom;
+    final bottomSafeSpace =
+        baseBottomInset + mediaQuery.systemGestureInsets.bottom + 42;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,14 +48,16 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        padding: EdgeInsets.fromLTRB(20, 12, 20, bottomSafeSpace),
         children: [
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65)),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: theme.colorScheme.shadow.withValues(alpha: 0.06),
@@ -75,7 +84,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     Expanded(
                       child: Text(
                         'Kontrol Utama',
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -104,10 +115,16 @@ class _DashboardPageState extends State<DashboardPage> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.10,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(Icons.route_rounded, color: theme.colorScheme.primary, size: 26),
+                        child: Icon(
+                          Icons.route_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 26,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -137,37 +154,19 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 20),
           AppSurfaceCard(
             title: 'Status sistem',
-            subtitle: 'Disusun agar alur pengujian lebih mudah dibaca sebelum rekam data.',
+            subtitle:
+                'Disusun agar alur pengujian lebih mudah dibaca sebelum rekam data.',
             accentColor: theme.colorScheme.secondary,
-            trailing: Icon(Icons.tune_rounded, color: theme.colorScheme.secondary),
+            trailing: Icon(
+              Icons.tune_rounded,
+              color: theme.colorScheme.secondary,
+            ),
             child: Column(
               children: [
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final stacked = constraints.maxWidth < 360;
-                    if (stacked) {
-                      return Column(
-                        children: [
-                          _buildMiniStat(
-                            context,
-                            label: 'Database',
-                            value: 'Supabase',
-                            hint: 'Sinkron cloud aktif',
-                            color: theme.colorScheme.tertiary,
-                          ),
-                          const SizedBox(height: 12),
-                          _buildMiniStat(
-                            context,
-                            label: 'Mode utama',
-                            value: 'Live GPS',
-                            hint: 'Tracking realtime',
-                            color: theme.colorScheme.primary,
-                          ),
-                        ],
-                      );
-                    }
-
                     return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: _buildMiniStat(
@@ -198,7 +197,8 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 20),
           AppSurfaceCard(
             title: 'Aksi cepat',
-            subtitle: 'Tiga alur utama untuk pengujian jalan, analisis histori, dan verifikasi di peta.',
+            subtitle:
+                'Tiga alur utama untuk pengujian jalan, analisis histori, dan verifikasi di peta.',
             accentColor: theme.colorScheme.primary,
             child: Column(
               children: [
@@ -207,11 +207,14 @@ class _DashboardPageState extends State<DashboardPage> {
                   icon: Icons.speed_rounded,
                   color: theme.colorScheme.primary,
                   title: 'Live Tracking',
-                  description: 'Preview sensor, cek GPS realtime, lalu mulai recording ke cloud.',
+                  description:
+                      'Preview sensor, cek GPS realtime, lalu mulai recording ke cloud.',
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const LiveTrackingPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LiveTrackingPage(),
+                      ),
                     );
                   },
                 ),
@@ -221,11 +224,14 @@ class _DashboardPageState extends State<DashboardPage> {
                   icon: Icons.history_rounded,
                   color: theme.colorScheme.tertiary,
                   title: 'Trip History',
-                  description: 'Buka sesi yang sudah direkam beserta ringkasan kecepatan, waktu, dan event.',
+                  description:
+                      'Buka sesi yang sudah direkam beserta ringkasan kecepatan, waktu, dan event.',
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const HistoryPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const HistoryPage(),
+                      ),
                     );
                   },
                 ),
@@ -235,7 +241,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   icon: Icons.map_rounded,
                   color: theme.colorScheme.secondary,
                   title: 'Map Visualization',
-                  description: 'Lihat rute dan titik event secara spasial agar validasi lebih cepat.',
+                  description:
+                      'Lihat rute dan titik event secara spasial agar validasi lebih cepat.',
                   onTap: () {
                     Navigator.push(
                       context,
@@ -246,6 +253,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -260,7 +268,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(minHeight: 138),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
@@ -268,11 +277,16 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
             value,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleLarge?.copyWith(color: color),
           ),
@@ -304,31 +318,57 @@ class _DashboardPageState extends State<DashboardPage> {
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: theme.colorScheme.outlineVariant),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(description, style: theme.textTheme.bodyMedium),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.onSurfaceVariant),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 340;
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: compact ? 48 : 52,
+                    height: compact ? 48 : 52,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Icon(icon, color: color, size: compact ? 24 : 26),
+                  ),
+                  SizedBox(width: compact ? 12 : 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          maxLines: compact ? 4 : 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.32,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

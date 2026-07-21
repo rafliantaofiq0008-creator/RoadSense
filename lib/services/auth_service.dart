@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/config/app_config.dart';
 import '../data/remote/supabase_service.dart';
 
 class AuthService {
@@ -11,7 +13,7 @@ class AuthService {
       return null;
     }
   }
-  
+
   Session? get currentSession {
     try {
       return _auth.currentSession;
@@ -19,7 +21,7 @@ class AuthService {
       return null;
     }
   }
-  
+
   Stream<AuthState> get authStateChanges => _auth.onAuthStateChange;
 
   bool get isAuthenticated => _auth.currentUser != null;
@@ -68,6 +70,23 @@ class AuthService {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    try {
+      final redirectTo = _mobileRedirectTo;
+      final launched = await _auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirectTo,
+      );
+      if (!launched) {
+        throw Exception('Google Sign-In tidak bisa dibuka di perangkat ini.');
+      }
+    } on AuthException catch (e) {
+      throw Exception('Google Sign-In gagal: ${e.message}');
+    } catch (e) {
+      throw Exception('Terjadi masalah saat membuka Google Sign-In.');
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await _auth.signOut();
@@ -75,6 +94,21 @@ class AuthService {
       throw Exception('Sign out failed: ${e.message}');
     } catch (e) {
       throw Exception('An unexpected error occurred during sign out.');
+    }
+  }
+
+  String? get _mobileRedirectTo {
+    if (kIsWeb) return null;
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+        return AppConfig.authRedirectUrl;
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.fuchsia:
+        return null;
     }
   }
 }
